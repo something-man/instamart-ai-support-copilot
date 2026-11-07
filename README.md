@@ -8,10 +8,10 @@ The project is implemented with Python 3.11+, pandas, NumPy, scikit-learn, SQLit
 
 ### Project components
 
-- **Part A — Data Foundation:** raw-data audit, cleaning, validation, SQLite storage, SQL queries, and pandas analysis.
+- **Part A — Data Foundation:** Raw-data audit, cleaning, validation, SQLite storage, SQL queries, and pandas analysis.
 - **Part B — Customer Intelligence:** RFM analysis, K-Means segmentation, lapse prediction, model evaluation, and retention prioritisation.
 - **Part C — Support Ticket Triage:** PII redaction, zero-shot/few-shot classification, retry handling, response validation, token-budget controls, and routing.
-- **Part D — Policy RAG and Refund Agent:** policy chunking and TF-IDF retrieval, unsupported-question fallback, refund decision tools, checkpointing, and crash recovery.
+- **Part D — Policy RAG and Refund Agent:** Policy chunking and TF-IDF retrieval, unsupported-question fallback, refund decision tools, checkpointing, and crash recovery.
 
 All records and policies are synthetic examples created for this assignment. They are not real Instamart customer data or official company policies. Monetary values are in Indian Rupees (INR).
 
@@ -21,89 +21,91 @@ Run these commands from the repository root in Windows PowerShell. Use Python 3.
 
 1. Create a virtual environment:
 
-   ```powershell
-   python -m venv .venv
-   ```
+```powershell
+python -m venv .venv
+```
 
 2. Activate it:
 
-   ```powershell
-   .\.venv\Scripts\Activate.ps1
-   ```
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
-3. Install the pinned project dependencies:
+3. Install the project dependencies:
 
-   ```powershell
-   python -m pip install -r requirements.txt
-   ```
+```powershell
+python -m pip install -r requirements.txt
+```
 
 4. Generate the synthetic raw datasets:
 
-   ```powershell
-   python generate_data.py
-   ```
+```powershell
+python generate_data.py
+```
 
-5. Run Part A data cleaning and create the analytical SQLite database:
+5. Run Part A data cleaning:
 
-   ```powershell
-   python part_a.py
-   ```
+```powershell
+python part_a.py
+```
 
-6. Run the formal Part A data and database validation:
+6. Run formal data validation:
 
-   ```powershell
-   python validate_data.py
-   ```
+```powershell
+python validate_data.py
+```
 
-7. Build the operational database used by the refund-agent scenarios:
+7. Build the operational database:
 
-   ```powershell
-   python build_database.py
-   ```
+```powershell
+python build_database.py
+```
 
 8. Validate the operational database:
 
-   ```powershell
-   python validate_database.py
-   ```
+```powershell
+python validate_database.py
+```
 
-9. Run the pandas exploratory analysis:
+9. Run pandas exploratory analysis:
 
-   ```powershell
-   python pandas_analysis.py
-   ```
+```powershell
+python pandas_analysis.py
+```
 
-10. Run Part B RFM analysis, segmentation, lapse prediction, and retention prioritisation:
+10. Run Part B customer analytics and lapse prediction:
 
-    ```powershell
-    python part_b.py
-    ```
+```powershell
+python part_b.py
+```
 
-11. Run Part C ticket classification, guardrail, and routing experiments:
+11. Run Part C ticket classification and routing:
 
-    ```powershell
-    python part_c.py
-    ```
+```powershell
+python part_c.py
+```
 
-12. Run Part D policy chunking, retrieval evaluation, and zero-overlap comparison:
+12. Run Part D policy retrieval evaluation:
 
-    ```powershell
-    python part_d.py
-    ```
+```powershell
+python part_d.py
+```
 
-13. Run the refund-agent scenarios, stop-safely tests, and checkpoint recovery demonstration:
+13. Run refund-agent scenarios and checkpoint recovery:
 
-    ```powershell
-    python refund_agent.py
-    ```
+```powershell
+python refund_agent.py
+```
 
-`part_a.py` creates `data/clean/` and `data/instamart.db`. `build_database.py` creates the separate operational database at `database/instamart.db`. The supplied `mock_llm.py` is intended to be copied verbatim from the assignment and used without modification. The commands above reproduce the project outputs from the synthetic data generator.
+`part_a.py` creates `data/clean/` and `data/instamart.db`. `build_database.py` creates the separate operational database at `database/instamart.db`.
+
+The supplied `mock_llm.py` is intended to be copied verbatim from the assignment and used without modification. The commands above reproduce the project outputs from the synthetic data generator.
 
 ## Part A
 
 ### Raw data audit
 
-The raw datasets include customers, products, orders, tickets, agent scenarios, and policy-evaluation examples. The main raw table dimensions were:
+The raw datasets include customers, products, orders, tickets, agent scenarios, and policy-evaluation examples.
 
 | Dataset | Raw shape |
 |---|---:|
@@ -143,7 +145,7 @@ Missing-value audit highlights:
 | Tickets — text | 4 | 2.44% |
 | Policy evaluation — expected_fact | 2 | 14.29% |
 
-The raw audit also identified 119 exact duplicate order rows and repeated order IDs representing order-event/status history. The intermediate cleaned order-event dataset contained 12,965 rows after exact duplicate removal. The final analytical order table contains one latest record per distinct order ID: 12,309 rows. These are different stages of the pipeline and should not be confused.
+The raw audit identified 119 exact duplicate order rows and repeated order IDs representing order-event/status history. The intermediate cleaned order-event dataset contained 12,965 rows after exact duplicate removal. The final analytical order table contains one latest record per distinct order ID: 12,309 rows. These are different stages of the pipeline and should not be confused.
 
 ### Cleaning rules
 
@@ -156,7 +158,7 @@ The raw audit also identified 119 exact duplicate order rows and repeated order 
 - Exact duplicate order rows were removed. Order events were sorted by order ID and timestamp, and the latest event was retained for each order ID.
 - Missing order amounts were recalculated from product price, quantity, and discount where possible.
 - Negative delivery times were treated as missing. Missing delivery times for completed orders were imputed using the product-category median; cancelled orders retain missing delivery times.
-- Ticket text was read with `keep_default_na=False` so blank ticket messages remain empty strings during audit. The ticket text was not imputed as part of the Part A clean customer/product/order exports.
+- Ticket text was read with `keep_default_na=False` so blank ticket messages remain empty strings during audit. Ticket text was not imputed as part of the Part A clean customer/product/order exports.
 
 ### Validation
 
@@ -524,7 +526,9 @@ The no-overlap version retrieved the expected document for all 12 answerable que
 
 This demonstrates that document-level retrieval success does not guarantee fact-level answer completeness. Overlap preserves context that would otherwise be split across chunk boundaries.
 
-Both unsupported questions — the company mascot's favourite colour and the cricket World Cup winner — correctly returned the fallback: `I could not find that information in the policy documents.`
+Both unsupported questions — the company mascot's favourite colour and the cricket World Cup winner — correctly returned the fallback:
+
+`I could not find that information in the policy documents.`
 
 ### Refund-agent tools and rules
 
@@ -577,3 +581,75 @@ get_order
 search_policy
 calculate_refund
 issue_refund
+```
+
+The resumed workflow continued from saved state rather than repeating completed tools.
+
+### Refund ledger
+
+The refund ledger contains the following issued refund records:
+
+| Order ID | Refund amount |
+|---|---:|
+| `ORD-100048` | INR 128.25 |
+| `ORD-100067` | INR 135.00 |
+
+Duplicate refund order IDs: **0**.
+
+The `issue_refund` tool uses an idempotency check to prevent the same refund from being issued more than once. The crash/resume demonstration verifies that an already-recorded refund is not duplicated.
+
+### Agent execution log
+
+The agent execution log is written to `outputs/agent_runs.jsonl`. The final run produced 10 records. Checkpoint files are stored in `state/`.
+
+Each execution log record contains the following fields:
+
+| Field | Description |
+|---|---|
+| `scenario_id` | Scenario being executed |
+| `status` | Final execution status |
+| `final_answer` | Final response returned by the agent |
+| `llm_calls` | Number of mock LLM calls |
+| `tokens_used` | Total tokens consumed |
+| `steps` | Tool execution history, including tool names, arguments, and results |
+
+The JSONL log supports inspection of the agent's decisions and tool sequence. It is an execution trace for this offline simulation, not a production audit system.
+
+Required outputs:
+
+- `outputs/agent_runs.jsonl`
+- `outputs/refund_ledger.jsonl`
+- `state/`
+
+Refund issuance and human escalation are simulated. No real payment gateway or support-ticketing system is connected.
+
+### ReAct vs Plan-and-Execute
+
+The implemented refund agent follows a ReAct-style workflow: it observes the result of each tool call and chooses the next action based on the returned information.
+
+A Plan-and-Execute approach would first create a sequence of planned steps and then execute that plan. It can be useful for predictable workflows, but unexpected tool results may require replanning.
+
+The S1 ReAct execution used 960 mock tokens across four tool executions. A separate Plan-and-Execute benchmark was not implemented, so no numerical performance comparison is claimed.
+
+## Limitations and Next Steps
+
+### Limitations
+
+- **Synthetic data:** Customer, order, ticket, and policy data are fictional. Results do not represent actual Instamart operations.
+- **Mock LLM:** All language-model interactions use the deterministic offline `mock_llm.py`. Classification and agent results do not establish real-world LLM accuracy.
+- **Retrieval limitations:** TF-IDF and lexical relevance checks are lightweight retrieval methods. They may not capture semantic similarity or complex policy relationships.
+- **Chunking limitations:** Overlap improved the evaluation results, but it does not guarantee complete retrieval for every possible query.
+- **Token budget:** The current pre-call token guard can allow a small overshoot because the response tokens are counted after the call.
+- **Model evaluation:** Logistic Regression was selected using held-out test F1, while Random Forest had higher cross-validation F1. This selection process should be improved with a separate validation strategy.
+- **Historical feature leakage risk:** Premium labels use a full-window RFM snapshot that includes September. The Premium flag in the retention list is therefore not a leakage-free historical feature.
+- **Simulated refund execution:** Refund issuance, refund ledger updates, and human escalation are local simulations. No real payment or support system is integrated.
+- **Operational readiness:** The project does not include production authentication, role-based access control, deployment infrastructure, or production monitoring.
+
+### Next steps
+
+- Validate the pipeline with representative, appropriately anonymised real-world data.
+- Use time-based train, validation, and test splits for more realistic lapse prediction.
+- Improve model evaluation with a clearly separated validation set and threshold calibration.
+- Add drift monitoring and periodic model-performance reviews.
+- Evaluate semantic retrieval methods and expand policy test coverage.
+- Enforce a strict token budget that
