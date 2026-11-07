@@ -518,9 +518,9 @@ The current 10-word-overlap configuration passed all 14 evaluation questions.
 
 The no-overlap version retrieved the expected document for all 12 answerable questions, but failed to preserve the complete fact for three questions:
 
-- The completed-order refund question lost the phrase **“more than 45 minutes.”**
-- The refund-approval question lost the fact **“human support lead.”**
-- The failed-payment question lost the **“48 hours”** return timeline.
+- The completed-order refund question lost the phrase **"more than 45 minutes."**
+- The refund-approval question lost the fact **"human support lead."**
+- The failed-payment question lost the **"48 hours"** return timeline.
 
 This demonstrates that document-level retrieval success does not guarantee fact-level answer completeness. Overlap preserves context that would otherwise be split across chunk boundaries.
 
@@ -548,15 +548,15 @@ Implemented rules:
 
 ### Seven-scenario evaluation
 
-| Scenario | Scenario outcome | Result |
-|---|---|---|
-| S1 | Refund INR 128.25 | PASS |
-| S2 | Refund INR 135.00 | PASS |
-| S3 | Escalate INR 1,999.00 | PASS |
-| S4 | Denied — delivery within 45 minutes | PASS |
-| S5 | Denied — cancelled order | PASS |
-| S6 | Order not found | PASS |
-| S7 | `FALLBACK_MAX_ITERATIONS` | PASS |
+| Scenario ID | Status | Refund amount | Model calls | Tokens used |
+|---|---|---:|---:|---:|
+| S1 | `COMPLETED` — refund issued | INR 128.25 | 5 | 960 |
+| S2 | `COMPLETED` — refund issued | INR 135.00 | 5 | 960 |
+| S3 | `COMPLETED` — escalated to human | INR 1,999.00 (not issued) | 5 | 950 |
+| S4 | `COMPLETED` — denied; delivery within 45 minutes | INR 0.00 | 4 | 661 |
+| S5 | `COMPLETED` — denied; cancelled order | N/A | 3 | 386 |
+| S6 | `COMPLETED` — order not found | N/A | 2 | 98 |
+| S7 | `FALLBACK_MAX_ITERATIONS` | N/A | 6 | 1,227 |
 
 All seven scenarios produced their expected outcomes.
 
@@ -577,47 +577,3 @@ get_order
 search_policy
 calculate_refund
 issue_refund
-```
-
-The resumed workflow continued from saved state rather than repeating completed tools.
-
-### Refund ledger and execution logs
-
-The simulated refund ledger contains two issued-refund records:
-
-| Order ID | Refund amount |
-|---|---:|
-| `ORD-100048` | INR 128.25 |
-| `ORD-100067` | INR 135.00 |
-
-Duplicate refund order IDs: **0**.
-
-The agent execution log contains 10 records. Checkpoint files are stored in `state/`.
-
-Required outputs:
-
-- `outputs/agent_runs.jsonl`
-- `outputs/refund_ledger.jsonl`
-- `state/`
-
-Refund issuance and human escalation are simulated. No real payment gateway or support-ticketing system is called.
-
-### ReAct versus Plan-and-Execute
-
-The implemented refund agent follows a ReAct-style loop: the model observes tool results and selects the next action. This allows the workflow to respond to database and policy observations, such as a missing order, a cancelled order, an eligible refund, or a refund requiring escalation.
-
-A Plan-and-Execute approach would create a plan first and then execute its steps. That can reduce repeated planning for predictable workflows, but unexpected tool results may require replanning.
-
-The S1 ReAct execution used 960 mock tokens across four tool executions. A separate Plan-and-Execute implementation was not benchmarked, so no numerical token comparison is claimed. ReAct was retained because the workflow needs to react to actual tool observations.
-
-## Limitations and Next Steps
-
-- The datasets are synthetic and do not represent real customer behaviour, real transactions, or official Instamart policies.
-- The offline mock LLM is deterministic. Its measured accuracy does not establish real-world LLM performance.
-- The RAG assistant uses TF-IDF and lexical relevance checks. It can miss semantically related passages and does not provide a general semantic-entailment guarantee.
-- Chunk overlap improves the observed fact-hit result, but it does not guarantee that every future policy question will be answered correctly.
-- The token-budget guard checks before a model call; the final response can exceed the configured budget slightly.
-- The retention list uses a Premium segment label derived from the full-window RFM snapshot, including September. It should not be interpreted as a leakage-free historical ranking.
-- Refund issuance and human escalation are simulations; the project does not integrate with a real payment gateway or support platform.
-- Production use would require authentication, role-based access control, secure audit logs, stronger idempotency and transaction controls, monitoring, real payment-provider integration, and a human approval workflow.
-- Before deployment, the pipeline should be tested on representative real-world data, with temporal validation, model calibration, drift monitoring, and operational review.
