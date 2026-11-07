@@ -295,6 +295,87 @@ def test_zero_overlap():
 
     print("Zero-overlap retrieval: PASS")
 
+def evaluate_zero_overlap():
+
+    chunks = load_policy_chunks(
+        chunk_size=40,
+        overlap=0
+    )
+
+    retriever = PolicyRetriever(chunks)
+
+    evaluations = load_policy_evaluations()
+
+    doc_hits = 0
+    fact_hits = 0
+    fallback_hits = 0
+
+    answerable = 0
+    unsupported = 0
+
+    print("\n" + "=" * 65)
+    print("ZERO-OVERLAP FULL EVALUATION")
+    print("=" * 65)
+
+    for _, row in evaluations.iterrows():
+
+        result = answer_policy_question(
+            row["question"],
+            retriever
+        )
+
+        answer = result["answer"].lower()
+        sources = result["sources"]
+
+        if int(row["expected_fact_missing"]):
+
+            unsupported += 1
+
+            if (
+                not sources
+                and "could not find" in answer
+            ):
+                fallback_hits += 1
+
+        else:
+
+            answerable += 1
+
+            if row["expected_doc"] in sources:
+                doc_hits += 1
+
+            if row["expected_fact"].lower() in answer:
+                fact_hits += 1
+            else:
+                print("\nFACT MISS")
+                print("Question:", row["question"])
+                print("Expected fact:", row["expected_fact"])
+                print("Generated answer:", result["answer"])
+                print("Retrieved sources:", sources)
+
+    print("Zero-overlap chunks:", len(chunks))
+    print("Answerable questions:", answerable)
+    print("Unsupported questions:", unsupported)
+
+    print(
+        f"Expected document hits: {doc_hits}/{answerable}"
+    )
+
+    print(
+        f"Expected fact hits: {fact_hits}/{answerable}"
+    )
+
+    print(
+        f"Unsupported fallbacks: {fallback_hits}/{unsupported}"
+    )
+
+    return {
+        "chunks": len(chunks),
+        "doc_hits": doc_hits,
+        "fact_hits": fact_hits,
+        "fallback_hits": fallback_hits
+    }
+
 def test_missing_information(retriever):
 
     questions = [
@@ -346,6 +427,7 @@ def main():
     evaluation_results = evaluate_policy_assistant(retriever)
 
     test_zero_overlap()
+    evaluate_zero_overlap()
     test_missing_information(retriever)
 
     print("\n" + "=" * 65)

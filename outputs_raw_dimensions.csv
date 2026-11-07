@@ -1,0 +1,7 @@
+Dataset,Rows,Columns
+agent_scenarios.csv,7,5
+customers.csv,1200,5
+orders.csv,13084,9
+policy_eval.csv,14,3
+products.csv,40,4
+tickets.csv,164,5

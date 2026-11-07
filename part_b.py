@@ -576,6 +576,10 @@ def evaluate_model(name, y_true, predictions):
     print("Confusion Matrix:")
     print(confusion_matrix(y_true, predictions))
 
+    print("Accuracy:", round(
+        accuracy_score(y_true, predictions), 4
+    ))
+
     print("Precision:", round(
         precision_score(y_true, predictions, zero_division=0), 4
     ))
@@ -588,6 +592,8 @@ def evaluate_model(name, y_true, predictions):
         f1_score(y_true, predictions, zero_division=0), 4
     ))
 
+
+# Outside the function — zero indentation
 evaluate_model(
     "LOGISTIC REGRESSION",
     y_test,
