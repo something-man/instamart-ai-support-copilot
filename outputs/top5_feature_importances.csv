@@ -1,0 +1,6 @@
+feature,importance
+numeric__monetary,0.27782967729234825
+numeric__frequency,0.27678746927823344
+numeric__recency,0.11121869821096042
+numeric__avg_delivery_minutes,0.061649193495127215
+numeric__avg_discount_pct,0.053177853675867214
