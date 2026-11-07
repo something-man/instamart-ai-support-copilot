@@ -122,7 +122,6 @@ def calculate_refund(order_amount, delivery_minutes):
     }
 
 
-
 def issue_refund(order_id, refund_inr, run_id):
     amount = round(float(refund_inr), 2)
 
@@ -180,6 +179,7 @@ def issue_refund(order_id, refund_inr, run_id):
         "status": "REFUND",
         "already_recorded": False
     }
+
 
 def escalate_to_human(order_id, refund_inr):
     return {
@@ -288,6 +288,8 @@ def create_state(scenario, token_limit, time_limit_seconds):
         "tokens_used": 0,
         "tool_steps": 0,
         "tools_executed": [],
+        "llm_calls": 0,
+        "steps": [],
         "token_limit": token_limit,
         "time_limit_seconds": time_limit_seconds,
         "started_at": time.time(),
@@ -306,10 +308,10 @@ def finalize(state, status, response):
         "run_id": state["run_id"],
         "scenario_id": state["scenario_id"],
         "status": status,
+        "final_answer": response,
+        "llm_calls": state["llm_calls"],
         "tokens_used": state["tokens_used"],
-        "tool_steps": state["tool_steps"],
-        "tools_executed": state["tools_executed"],
-        "final_response": response
+        "steps": state["steps"]
     })
 
     return state
@@ -338,6 +340,10 @@ def run_agent(
 
 def continue_agent(state, crash_after_tools=None):
 
+    # Support checkpoints created by older versions.
+    state.setdefault("llm_calls", 0)
+    state.setdefault("steps", [])
+
     while True:
 
         if time.time() - state["started_at"] >= state["time_limit_seconds"]:
@@ -362,9 +368,9 @@ def continue_agent(state, crash_after_tools=None):
             )
 
         response = mock_llm.chat(state["messages"])
+        state["llm_calls"] += 1
 
         usage = response.usage.total_tokens
-
         state["tokens_used"] += usage
 
         message = response.choices[0].message
@@ -423,6 +429,14 @@ def continue_agent(state, crash_after_tools=None):
             state["tool_steps"] += 1
             state["tools_executed"].append(tool_name)
 
+            # Record every tool execution.
+            state["steps"].append({
+                "step": state["tool_steps"],
+                "tool": tool_name,
+                "arguments": arguments,
+                "result": result
+            })
+
             # Save immediately after every tool observation.
             save_checkpoint(state)
 
@@ -474,8 +488,6 @@ def load_scenarios():
 # SCENARIO VALIDATION
 # --------------------------------------------------
 
-
-
 def check_scenario(scenario, result):
 
     expected = scenario["expected_outcome"]
@@ -523,6 +535,7 @@ def check_scenario(scenario, result):
         )
 
     return False
+
 
 # --------------------------------------------------
 # FULL TEST SUITE
